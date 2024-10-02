@@ -110,7 +110,7 @@ def chat():
     if user_message:
         try:
             # Load documents and set up vector store (for demo purposes; adjust as needed)
-            text_docs = load_text('Raw data - maps.txt')
+            text_docs = load_text('Maps Prompts.txt')
             all_docs = text_docs
             vectorStore = create_db(all_docs)
             chain = create_chain(vectorStore)

@@ -125,6 +125,8 @@ def chat():
         if "is_new_user" not in session:
             session["is_new_user"] = True
             session["chat_history"] = []
+            session.modified = True  # Make sure to mark session as modified
+            print(f"Session initialized: {session}")  # Debugging session initialization
             return jsonify({
                 "reply": "Hello! Welcome to the Atlas Map Navigation Assistant! Are you new to our interactive map platform? (Yes/No)"
             })
@@ -135,6 +137,7 @@ def chat():
                 # Set the user as no longer new
                 session["is_new_user"] = False
                 session.modified = True  # Ensure the session is saved
+                print(f"Session after 'yes' response: {session}")  # Debugging session update
                 return jsonify({
                     "reply": "Great! Let's start by familiarizing you with the map platform. You can start by reading the help screens. Please follow these steps:\n1. Click on Atlas maps\n2. Navigate to the right-hand side pane\n3. Click the 'i' icon in the top right-hand corner.\nThis will open the help screens. Are you ready to continue? (Yes/No)"
                 })
@@ -142,6 +145,7 @@ def chat():
                 # Set the user as no longer new
                 session["is_new_user"] = False
                 session.modified = True  # Ensure the session is saved
+                print(f"Session after 'no' response: {session}")  # Debugging session update
                 return jsonify({
                     "reply": "Welcome back! I'm here to assist you with any questions about our map platform. What can I help you with today?"
                 })
@@ -153,6 +157,7 @@ def chat():
 
         # Process regular conversation if user is not new
         else:
+            print(f"Session during regular chat: {session}")  # Debugging regular chat session
             # Use MapAssistant to process the user's request
             assistant = MapAssistant()
             bot_reply = assistant.process_chat(user_message)
@@ -169,6 +174,7 @@ def chat():
             "reply": "Sorry, there was an error processing your request.",
             "error": str(e)
         }), 500
+
 
 
 if __name__ == "__main__":

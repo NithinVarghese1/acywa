@@ -111,71 +111,44 @@ class MapAssistant(Assistant):
         super().__init__('Raw data - maps.txt', 'map navigation')
 
 
-# Main chat route to handle interactions
 @app.route("/chat", methods=["POST"])
 def chat():
+    data = request.get_json()
+    user_message = data.get("message", "")
+    
+    # Check if session state exists, otherwise initialize
+    if 'chat_state' not in session:
+        session['chat_state'] = {'is_new_user': True, 'step': 1}
+
+    chat_state = session['chat_state']
+
     try:
-        data = request.get_json()
-        user_message = data.get("message", "").lower()
-
-        # Debugging: print session data before handling the message
-        print(f"Session before handling message: {session}")
-
-        # Check if user is new based on session state
-        if "is_new_user" not in session:
-            session["is_new_user"] = True
-            session["chat_history"] = []
-            session.modified = True  # Make sure to mark session as modified
-            print(f"Session initialized: {session}")  # Debugging session initialization
-            return jsonify({
-                "reply": "Hello! Welcome to the Atlas Map Navigation Assistant! Are you new to our interactive map platform? (Yes/No)"
-            })
-
-        # Handle the first user response (if they are new)
-        if session["is_new_user"]:
-            if user_message in ['yes', 'y']:
-                # Set the user as no longer new
-                session["is_new_user"] = False
-                session.modified = True  # Ensure the session is saved
-                print(f"Session after 'yes' response: {session}")  # Debugging session update
-                return jsonify({
-                    "reply": "Great! Let's start by familiarizing you with the map platform. You can start by reading the help screens. Please follow these steps:\n1. Click on Atlas maps\n2. Navigate to the right-hand side pane\n3. Click the 'i' icon in the top right-hand corner.\nThis will open the help screens. Are you ready to continue? (Yes/No)"
-                })
-            elif user_message in ['no', 'n']:
-                # Set the user as no longer new
-                session["is_new_user"] = False
-                session.modified = True  # Ensure the session is saved
-                print(f"Session after 'no' response: {session}")  # Debugging session update
-                return jsonify({
-                    "reply": "Welcome back! I'm here to assist you with any questions about our map platform. What can I help you with today?"
-                })
+        # Interactive logic similar to CLI mode in your original code
+        if chat_state['step'] == 1:
+            bot_reply = "Hello! Welcome to the Atlas Map Navigation Assistant! Are you new to our interactive map platform? (Yes/No)"
+            chat_state['step'] = 2
+        elif chat_state['step'] == 2:
+            if user_message.lower() in ['yes', 'y']:
+                chat_state['is_new_user'] = True
+                bot_reply = "Great! Let's start by familiarizing you with the map platform. Follow these steps: 1. Click on Atlas maps 2. Navigate to the right-hand side pane 3. Click the 'i' icon in the top right-hand corner."
+                chat_state['step'] = 3
             else:
-                # Re-prompt if the input is not clear
-                return jsonify({
-                    "reply": "Please respond with 'Yes' or 'No'. Are you new to the platform?"
-                })
+                chat_state['is_new_user'] = False
+                bot_reply = "Welcome back! What specific question can I assist you with first?"
+                chat_state['step'] = 3
+        elif chat_state['step'] == 3:
+            bot_reply = "What specific question can I assist you with today?"
+            # After this, you can continue handling specific questions in further steps.
 
-        # Process regular conversation if user is not new
-        else:
-            print(f"Session during regular chat: {session}")  # Debugging regular chat session
-            # Use MapAssistant to process the user's request
-            assistant = MapAssistant()
-            bot_reply = assistant.process_chat(user_message)
+        # Update session with the current state
+        session['chat_state'] = chat_state
 
-            # Continue with normal chat response
-            return jsonify({
-                "reply": bot_reply
-            })
+        return jsonify({"reply": bot_reply})
 
     except Exception as e:
-        print(f"Error: {str(e)}")
         traceback.print_exc()
-        return jsonify({
-            "reply": "Sorry, there was an error processing your request.",
-            "error": str(e)
-        }), 500
+        return jsonify({"reply": "Sorry, there was an error processing your request."}), 500
 
-
-
+# Main entry point for Flask API
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

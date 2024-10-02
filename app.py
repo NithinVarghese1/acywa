@@ -1,6 +1,8 @@
 import os
 import openai
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from langchain_community.document_loaders import TextLoader
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -12,6 +14,10 @@ from langchain.chains.history_aware_retriever import create_history_aware_retrie
 
 # Load environment variables (e.g., API keys)
 load_dotenv()
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend interaction
 
 # Set OpenAI API key from environment variable
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -102,6 +108,42 @@ class MapAssistant(Assistant):
     def __init__(self):
         super().__init__('Raw data - maps.txt', 'map navigation')
 
+# Flask API route
+@app.route('/')
+def index():
+    return "Welcome to the Chatbot API! Access the /chat endpoint to communicate with the chatbot."
+
+# Chat route to handle incoming chat requests
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    user_message = data.get("message", "")
+    chat_history = data.get("chat_history", [])
+    context = "map navigation"
+
+    if user_message:
+        try:
+            # Create an instance of MapAssistant and load documents and set up vector store
+            assistant = MapAssistant()
+
+            # Process the user message through LangChain
+            bot_reply = assistant.process_chat(user_message)
+
+            # Append the messages to chat history
+            chat_history.append(HumanMessage(content=user_message))
+            chat_history.append(AIMessage(content=bot_reply))
+
+            # Serialize chat history before returning
+            serialized_history = [{"type": "human", "content": msg.content} if isinstance(msg, HumanMessage)
+                                  else {"type": "ai", "content": msg.content} for msg in chat_history]
+
+            return jsonify({"reply": bot_reply, "chat_history": serialized_history})
+        except Exception as e:
+            print(f"Error: {e}")
+            return jsonify({"reply": "Sorry, there was an error processing your request."}), 500
+
+    return jsonify({"reply": "No message provided."}), 400
+
 # Interactive mode for CLI
 def run_interactive_mode():
     assistant = MapAssistant()
@@ -139,6 +181,10 @@ def run_interactive_mode():
             print(f"An error occurred: {e}")
             print("Let's try that again. Could you rephrase your question?")
 
-# Main entry point for CLI
+# Main entry point for CLI or Flask API
 if __name__ == "__main__":
-    run_interactive_mode()
+    # Check if running in CLI or Flask mode based on environment variable or argument
+    if os.getenv("MODE") == "interactive":
+        run_interactive_mode()
+    else:
+        app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

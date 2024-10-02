@@ -1,5 +1,4 @@
 import os
-import openai
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -49,10 +48,11 @@ class Assistant:
             api_key=openai_api_key
         )
 
+        # Fixing the issue with self.context by escaping it
         prompt = ChatPromptTemplate.from_messages([
-            ("system", f"You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {self.context}. Your primary goal is to help users with {self.context} only."),
-            ("system", "Context: {self.context}"),
-            ("system", "Instructions for {self.context}:"
+            ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {{self.context}}. Your primary goal is to help users with {{self.context}} only."),
+            ("system", "Context: {{self.context}}"),
+            ("system", "Instructions for {{self.context}}:"
                        "\n1. If given a one-word or vague query, ask for clarification before proceeding."
                        "\n2. For all users, provide the following general steps for finding data on a specific theme or indicator:"
                        "\n   - Direct users to open the Atlas maps"
@@ -63,7 +63,7 @@ class Assistant:
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             ("system", "Remember to be concise, clear, and helpful in your responses - give a maximum of 3 sentences. "
-                       "Focus exclusively on {context} and do not discuss other topics unless explicitly asked."
+                       "Focus exclusively on {{self.context}} and do not discuss other topics unless explicitly asked."
                        "After giving guidance, suggest two relevant follow-up questions.")
         ])
 

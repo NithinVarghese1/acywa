@@ -114,6 +114,8 @@ def index():
     return "Welcome to the Chatbot API! Access the /chat endpoint to communicate with the chatbot."
 
 # Chat route to handle incoming chat requests
+import traceback
+
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -139,10 +141,13 @@ def chat():
 
             return jsonify({"reply": bot_reply, "chat_history": serialized_history})
         except Exception as e:
-            print(f"Error: {e}")
-            return jsonify({"reply": "Sorry, there was an error processing your request."}), 500
+            # Log the full traceback for debugging
+            print("Error: ", str(e))
+            traceback.print_exc()
+            return jsonify({"reply": "Sorry, there was an error processing your request.", "error": str(e)}), 500
 
     return jsonify({"reply": "No message provided."}), 400
+
 
 # Interactive mode for CLI
 def run_interactive_mode():

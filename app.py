@@ -48,7 +48,7 @@ class Assistant:
             api_key=openai_api_key
         )
 
-        # Fixing the issue with self.context by escaping it and adding 'context' as input
+        # Fixing the issue with self.context by escaping it and ensuring 'context' is passed
         prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {{context}}. Your primary goal is to help users with {{context}} only."),
             ("system", "Context: {{context}}"),
@@ -65,7 +65,7 @@ class Assistant:
             ("system", "Remember to be concise, clear, and helpful in your responses - give a maximum of 3 sentences. "
                        "Focus exclusively on {{context}} and do not discuss other topics unless explicitly asked."
                        "After giving guidance, suggest two relevant follow-up questions.")
-        ], input_variables=["chat_history", "input", "context"])  # Add 'context' to input variables
+        ])
 
         chain = create_stuff_documents_chain(
             llm=model,
@@ -78,7 +78,7 @@ class Assistant:
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             ("human", f"Given the above conversation about {{context}}, generate a search query to look up relevant information")
-        ], input_variables=["chat_history", "input", "context"])  # Ensure 'context' is included here as well
+        ])
 
         history_aware_retriever = create_history_aware_retriever(
             llm=model,

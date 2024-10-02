@@ -10,6 +10,7 @@ from langchain_community.vectorstores import Chroma
 from langchain.chains import create_retrieval_chain
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
+import traceback
 
 # Load environment variables (e.g., API keys)
 load_dotenv()
@@ -48,7 +49,7 @@ class Assistant:
             api_key=openai_api_key
         )
 
-        # Fixing the issue with self.context by escaping it and ensuring 'context' is passed
+        # Fixing the issue with self.context by escaping it and adding 'context' as input
         prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {{context}}. Your primary goal is to help users with {{context}} only."),
             ("system", "Context: {{context}}"),
@@ -65,11 +66,12 @@ class Assistant:
             ("system", "Remember to be concise, clear, and helpful in your responses - give a maximum of 3 sentences. "
                        "Focus exclusively on {{context}} and do not discuss other topics unless explicitly asked."
                        "After giving guidance, suggest two relevant follow-up questions.")
-        ])
+        ], input_variables=["chat_history", "input", "context"])  # Add 'context' to input variables
 
         chain = create_stuff_documents_chain(
             llm=model,
-            prompt=prompt
+            prompt=prompt,
+            document_variable_name="context"  # This ensures that 'context' is passed correctly.
         )
 
         retriever = self.vectorStore.as_retriever(search_kwargs={"k": 1})
@@ -78,7 +80,7 @@ class Assistant:
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             ("human", f"Given the above conversation about {{context}}, generate a search query to look up relevant information")
-        ])
+        ], input_variables=["chat_history", "input", "context"])  # Ensure 'context' is included here as well
 
         history_aware_retriever = create_history_aware_retriever(
             llm=model,
@@ -114,8 +116,6 @@ def index():
     return "Welcome to the Chatbot API! Access the /chat endpoint to communicate with the chatbot."
 
 # Chat route to handle incoming chat requests
-import traceback
-
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -147,7 +147,6 @@ def chat():
             return jsonify({"reply": "Sorry, there was an error processing your request.", "error": str(e)}), 500
 
     return jsonify({"reply": "No message provided."}), 400
-
 
 # Interactive mode for CLI
 def run_interactive_mode():

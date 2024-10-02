@@ -1,4 +1,5 @@
 import os
+import traceback  # Import traceback to capture detailed error logs
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -126,6 +127,10 @@ def chat():
             # Create an instance of MapAssistant and load documents and set up vector store
             assistant = MapAssistant()
 
+            # Log inputs for debugging
+            print(f"User message: {user_message}")
+            print(f"Chat history: {chat_history}")
+
             # Process the user message through LangChain
             bot_reply = assistant.process_chat(user_message)
 
@@ -140,7 +145,8 @@ def chat():
             return jsonify({"reply": bot_reply, "chat_history": serialized_history})
         except Exception as e:
             print(f"Error: {e}")
-            return jsonify({"reply": "Sorry, there was an error processing your request."}), 500
+            print(traceback.format_exc())  # Log the full traceback for debugging
+            return jsonify({"reply": f"Sorry, there was an error processing your request. Error details: {str(e)}"}), 500
 
     return jsonify({"reply": "No message provided."}), 400
 

@@ -1,5 +1,4 @@
 import os
-import traceback  # Import traceback to capture detailed error logs
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -49,11 +48,11 @@ class Assistant:
             api_key=openai_api_key
         )
 
-        # Fixing the issue with self.context by escaping it
+        # Fixing the issue with self.context by escaping it and adding 'context' as input
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {{self.context}}. Your primary goal is to help users with {{self.context}} only."),
-            ("system", "Context: {{self.context}}"),
-            ("system", "Instructions for {{self.context}}:"
+            ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {{context}}. Your primary goal is to help users with {{context}} only."),
+            ("system", "Context: {{context}}"),
+            ("system", "Instructions for {{context}}:"
                        "\n1. If given a one-word or vague query, ask for clarification before proceeding."
                        "\n2. For all users, provide the following general steps for finding data on a specific theme or indicator:"
                        "\n   - Direct users to open the Atlas maps"
@@ -64,9 +63,9 @@ class Assistant:
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             ("system", "Remember to be concise, clear, and helpful in your responses - give a maximum of 3 sentences. "
-                       "Focus exclusively on {{self.context}} and do not discuss other topics unless explicitly asked."
+                       "Focus exclusively on {{context}} and do not discuss other topics unless explicitly asked."
                        "After giving guidance, suggest two relevant follow-up questions.")
-        ])
+        ], input_variables=["chat_history", "input", "context"])  # Add 'context' to input variables
 
         chain = create_stuff_documents_chain(
             llm=model,
@@ -78,8 +77,8 @@ class Assistant:
         retriever_prompt = ChatPromptTemplate.from_messages([
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
-            ("human", f"Given the above conversation about {self.context}, generate a search query to look up relevant information")
-        ])
+            ("human", f"Given the above conversation about {{context}}, generate a search query to look up relevant information")
+        ], input_variables=["chat_history", "input", "context"])  # Ensure 'context' is included here as well
 
         history_aware_retriever = create_history_aware_retriever(
             llm=model,
@@ -96,7 +95,7 @@ class Assistant:
         response = self.chain.invoke({
             "input": question,
             "chat_history": self.chat_history,
-            "context": self.context
+            "context": self.context  # Pass context explicitly
         })
         self.chat_history.append(HumanMessage(content=question))
         self.chat_history.append(AIMessage(content=response["answer"]))
@@ -127,10 +126,6 @@ def chat():
             # Create an instance of MapAssistant and load documents and set up vector store
             assistant = MapAssistant()
 
-            # Log inputs for debugging
-            print(f"User message: {user_message}")
-            print(f"Chat history: {chat_history}")
-
             # Process the user message through LangChain
             bot_reply = assistant.process_chat(user_message)
 
@@ -145,8 +140,7 @@ def chat():
             return jsonify({"reply": bot_reply, "chat_history": serialized_history})
         except Exception as e:
             print(f"Error: {e}")
-            print(traceback.format_exc())  # Log the full traceback for debugging
-            return jsonify({"reply": f"Sorry, there was an error processing your request. Error details: {str(e)}"}), 500
+            return jsonify({"reply": "Sorry, there was an error processing your request."}), 500
 
     return jsonify({"reply": "No message provided."}), 400
 

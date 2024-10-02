@@ -118,6 +118,9 @@ def chat():
         data = request.get_json()
         user_message = data.get("message", "").lower()
 
+        # Debugging: print session data before handling the message
+        print(f"Session before handling message: {session}")
+
         # Check if user is new based on session state
         if "is_new_user" not in session:
             session["is_new_user"] = True
@@ -131,12 +134,14 @@ def chat():
             if user_message in ['yes', 'y']:
                 # Set the user as no longer new
                 session["is_new_user"] = False
+                session.modified = True  # Ensure the session is saved
                 return jsonify({
                     "reply": "Great! Let's start by familiarizing you with the map platform. You can start by reading the help screens. Please follow these steps:\n1. Click on Atlas maps\n2. Navigate to the right-hand side pane\n3. Click the 'i' icon in the top right-hand corner.\nThis will open the help screens. Are you ready to continue? (Yes/No)"
                 })
             elif user_message in ['no', 'n']:
                 # Set the user as no longer new
                 session["is_new_user"] = False
+                session.modified = True  # Ensure the session is saved
                 return jsonify({
                     "reply": "Welcome back! I'm here to assist you with any questions about our map platform. What can I help you with today?"
                 })
@@ -165,3 +170,6 @@ def chat():
             "error": str(e)
         }), 500
 
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

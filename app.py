@@ -49,11 +49,11 @@ class Assistant:
             api_key=openai_api_key
         )
 
-        # Creating the prompt template
+        # Creating the prompt template with context explicitly defined
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {{context}}. Your primary goal is to help users with {{context}} only."),
-            ("system", "Context: {{context}}"),
-            ("system", "Instructions for {{context}}:"
+            ("system", "You are a helpful AI assistant chatbot specifically focused on giving a tutorial on how to navigate the Atlas map, based on {context}. Your primary goal is to help users with {context} only."),
+            ("system", "Context: {context}"),
+            ("system", "Instructions for {context}:"
                        "\n1. If given a one-word or vague query, ask for clarification before proceeding."
                        "\n2. For all users, provide the following general steps for finding data on a specific theme or indicator:"
                        "\n   - Direct users to open the Atlas maps"
@@ -64,14 +64,14 @@ class Assistant:
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             ("system", "Remember to be concise, clear, and helpful in your responses - give a maximum of 3 sentences. "
-                       "Focus exclusively on {{context}} and do not discuss other topics unless explicitly asked."
+                       "Focus exclusively on {context} and do not discuss other topics unless explicitly asked."
                        "After giving guidance, suggest two relevant follow-up questions.")
         ])
 
         chain = create_stuff_documents_chain(
             llm=model,
             prompt=prompt,
-            document_variable_name="context"  # Ensures context is passed correctly
+            document_variable_name="context"  # This ensures context is passed correctly as an input
         )
 
         retriever = self.vectorStore.as_retriever(search_kwargs={"k": 1})
@@ -79,7 +79,7 @@ class Assistant:
         retriever_prompt = ChatPromptTemplate.from_messages([
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
-            ("human", f"Given the above conversation about {{context}}, generate a search query to look up relevant information")
+            ("human", "Given the above conversation about {context}, generate a search query to look up relevant information")
         ])
 
         history_aware_retriever = create_history_aware_retriever(
@@ -97,7 +97,7 @@ class Assistant:
         response = self.chain.invoke({
             "input": question,
             "chat_history": self.chat_history,
-            "context": self.context  # Pass context explicitly
+            "context": self.context  # Pass context explicitly here
         })
         self.chat_history.append(HumanMessage(content=question))
         self.chat_history.append(AIMessage(content=response["answer"]))

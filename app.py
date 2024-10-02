@@ -129,16 +129,19 @@ def chat():
         # Handle the first user response (if they are new)
         if session["is_new_user"]:
             if user_message in ['yes', 'y']:
+                # Set the user as no longer new
                 session["is_new_user"] = False
                 return jsonify({
                     "reply": "Great! Let's start by familiarizing you with the map platform. You can start by reading the help screens. Please follow these steps:\n1. Click on Atlas maps\n2. Navigate to the right-hand side pane\n3. Click the 'i' icon in the top right-hand corner.\nThis will open the help screens. Are you ready to continue? (Yes/No)"
                 })
             elif user_message in ['no', 'n']:
+                # Set the user as no longer new
                 session["is_new_user"] = False
                 return jsonify({
                     "reply": "Welcome back! I'm here to assist you with any questions about our map platform. What can I help you with today?"
                 })
             else:
+                # Re-prompt if the input is not clear
                 return jsonify({
                     "reply": "Please respond with 'Yes' or 'No'. Are you new to the platform?"
                 })
@@ -148,7 +151,8 @@ def chat():
             # Use MapAssistant to process the user's request
             assistant = MapAssistant()
             bot_reply = assistant.process_chat(user_message)
-            
+
+            # Continue with normal chat response
             return jsonify({
                 "reply": bot_reply
             })
@@ -161,6 +165,3 @@ def chat():
             "error": str(e)
         }), 500
 
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
